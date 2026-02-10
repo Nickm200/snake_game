@@ -1,22 +1,21 @@
 import pygame
-from config import *
+from settings import *
 
-pygame.init()
+class Main:
 
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption("Snake Game")
-clock = pygame.time.Clock()
+    def __init__(self):
+        #initializes basics of pygame
+        pygame.init()
+        self.display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        
 
-run = True
-while run:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-
-    screen.fill(GREEN)
-  
-    #update the display
-    pygame.display.flip()
-    clock.tick(FPS)
-
-pygame.quit()
+    def run(self):
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+            self.display_surface.fill(LIGHT_GREEN)
+            pygame.display.update()
+main = Main()
+main.run()
