@@ -2,6 +2,7 @@ import pygame
 from settings import *
 from snake import Snake
 from apple import Apple
+from menu import MainMenu, OptionsMenu, GameOptions
 
 class Main:
 
@@ -21,6 +22,17 @@ class Main:
         self.update_event = pygame.event.custom_type()
         pygame.time.set_timer(self.update_event, 200)
         self.game_active = False
+
+
+        
+        # menu setup
+        self.options = GameOptions()
+        self.main_menu = MainMenu(self.display_surface, self.options)
+        self.options_menu = OptionsMenu(self.display_surface, self.options)
+        self.state = "menu"
+
+
+
 
 
     def draw_bg(self):
@@ -55,6 +67,9 @@ class Main:
             self.snake.reset()
             self.game_active = False
             
+            #menu
+            self.state = "menu"
+            
 
 
     def run(self):
@@ -64,11 +79,35 @@ class Main:
                     pygame.quit()
                     exit()
 
-                if event.type == self.update_event and self.game_active:
-                    self.snake.update()
 
-                if event.type == pygame.KEYDOWN and not self.game_active:
-                    self.game_active = True
+                # added: menu states
+                if self.state == "menu":
+                    action = self.main_menu.handle_event(event)
+                    if action == "play":
+                        self.state = "game"
+                        self.game_active = False
+                        # speed
+                        speeds = [400, 200, 100]  # slow, normal, fast
+                        pygame.time.set_timer(self.update_event, speeds[self.options.speed])
+
+                    elif action == "options":
+                        self.state = "options"
+                    elif action == "quit":
+                        pygame.quit()
+                        exit()
+ 
+                elif self.state == "options":
+                    action = self.options_menu.handle_event(event)
+                    if action == "back":
+                        self.state = "menu"
+ 
+                elif self.state == "game":  
+
+                    if event.type == self.update_event and self.game_active:
+                        self.snake.update()
+
+                    if event.type == pygame.KEYDOWN and not self.game_active:
+                        self.game_active = True
 
             #updates
             self.input()
@@ -78,8 +117,15 @@ class Main:
             #draw
             self.display_surface.fill(LIGHT_GREEN)
             self.draw_bg()
-            self.snake.draw()
-            self.apple.draw()
+            if self.state == "game":
+                self.snake.draw()
+                self.apple.draw()
+
+            elif self.state == "menu":
+                self.main_menu.draw()
+            elif self.state == "options":
+                self.options_menu.draw()
+
             pygame.display.update()
 main = Main()
 main.run()
