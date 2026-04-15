@@ -23,10 +23,18 @@ class Main:
         pygame.time.set_timer(self.update_event, 200)
         self.game_active = False
 
+         # score tracking
+        self.score = 0
+        self.high_score = 0
+        self.score_font = pygame.font.SysFont("comicsansms", 24, bold = True)
+
 
         
         # menu setup
         self.options = GameOptions()
+
+        self.main_menu = MainMenu(self.display_surface, self.options, self.high_score)
+
         self.main_menu = MainMenu(self.display_surface, self.options)
         self.options_menu = OptionsMenu(self.display_surface, self.options)
         self.state = "menu"
@@ -60,11 +68,22 @@ class Main:
             self.snake.has_eaten = True
             self.apple.set_pos()
 
+            self.score += 1
+            if self.score > self.high_score:
+                self.high_score = self.score
+                self.main_menu.high_score = self.high_score
+
+
+      
+
             # game over
         if self.snake.body[0] in self.snake.body[1:] or \
             not 0 <= self.snake.body[0].x < COLS or \
             not 0 <= self.snake.body[0].y < ROWS:
             self.snake.reset()
+
+            self.score = 0
+
             self.game_active = False
             
             #menu
@@ -86,6 +105,9 @@ class Main:
                     if action == "play":
                         self.state = "game"
                         self.game_active = False
+
+                        self.score = 0
+
                         # speed
                         speeds = [400, 200, 100]  # slow, normal, fast
                         pygame.time.set_timer(self.update_event, speeds[self.options.speed])
@@ -110,8 +132,10 @@ class Main:
                         self.game_active = True
 
             #updates
-            self.input()
-            self.colliion()
+
+            if self.state == "game":
+                self.input()
+                self.colliion()
 
 
             #draw
@@ -120,6 +144,13 @@ class Main:
             if self.state == "game":
                 self.snake.draw()
                 self.apple.draw()
+
+                # draw score
+                score_surf = self.score_font.render(f"Score: {self.score}", True, (255, 255, 255))
+                score_shadow = self.score_font.render(f"Score: {self.score}", True, (0, 0, 0))
+                self.display_surface.blit(score_shadow, (12, 12))
+                self.display_surface.blit(score_surf, (10, 10))
+
 
             elif self.state == "menu":
                 self.main_menu.draw()

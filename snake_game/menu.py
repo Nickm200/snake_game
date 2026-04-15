@@ -6,7 +6,7 @@ from settings import *
  
 def draw_text(surface, text, font, color, center):
     surf = font.render(text, True, color)
-    r = surf.get_rect(center=center)
+    r = surf.get_rect(center = center)
     surface.blit(surf, r)
  
  
@@ -28,11 +28,18 @@ class MainMenu:
  
     BUTTONS = ["Play", "Options", "Exit"]
  
-    def __init__(self, display_surface, options):
+    def __init__(self, display_surface, options, high_score = 0):
         self.surface = display_surface
         self.options = options
+
+        self.high_score = high_score
+
         self.font_title = pygame.font.SysFont("comicsansms", 68, bold=True)
         self.font_btn = pygame.font.SysFont("comicsansms", 30)
+
+        self.font_score = pygame.font.SysFont("comicsansms", 22)
+
+
         self.btn_rects = []
         self.action = None
  
@@ -60,6 +67,16 @@ class MainMenu:
  
         # draw the title
         draw_text(self.surface, "MAIN MENU", self.font_title, (255, 255, 255), (cx, panel_rect.top + 68))
+
+        # draw high score
+        hs_text = f"High Score: {self.high_score}"
+        draw_text(self.surface, hs_text, self.font_score, LIGHT_GREEN, (cx, panel_rect.top + 118))
+
+      
+
+        
+       
+       
     
  
         # draw buttons
