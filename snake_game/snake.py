@@ -10,15 +10,25 @@ class Snake:
         
         self.direction = pygame.Vector2(1,0)
 
+        #added: second head moves opposite dir by default
+        #self.direction = pygame.Vector2(-1,0)
+        self.flipped = False
+
         
 
         self.has_eaten = False
+
+        #added: flag to toggle two headed mode
+        self.two_headed = False
 
         #graphics
         self.surfs = self.import_surfs()
         self.draw_data = []
         self.head_surf = self.surfs['head_right']
         self.tail_surf = self.surfs['tail_left']
+
+        #added: surface for the second head
+        self.head2_surf = self.surfs['head_left']
 
         self.update_body()
         
@@ -43,57 +53,98 @@ class Snake:
 
 
     def update(self):
-        if not self.has_eaten:
-            body_copy = self.body[:-1]
-            body_copy.insert(0, body_copy[0] + self.direction)
-            self.body = body_copy[:]
+        if self.two_headed:
+            if not self.flipped:
+            # body[0] is the head
+                if not self.has_eaten:
+                    body_copy = self.body[:-1]
+                    body_copy.insert(0, body_copy[0] + self.direction)
+                    self.body = body_copy
+                else:
+                    body_copy = self.body[:]
+                    body_copy.insert(0, body_copy[0] + self.direction)
+                    self.body = body_copy
+                    self.has_eaten = False
+            else:
+            # body[-1] is the head, move from other end
+                if not self.has_eaten:
+                    body_copy = self.body[1:]
+                    body_copy.append(body_copy[-1] + self.direction)
+                    self.body = body_copy
+                else:
+                    body_copy = self.body[:]
+                    body_copy.append(body_copy[-1] + self.direction)
+                    self.body = body_copy
+                    self.has_eaten = False
         else:
-            body_copy = self.body[:]
-            body_copy.insert(0, body_copy[0] + self.direction)
-            self.body = body_copy[:]
-            self.has_eaten = False
+        # single head unchanged
+            if not self.has_eaten:
+                body_copy = self.body[:-1]
+                body_copy.insert(0, body_copy[0] + self.direction)
+                self.body = body_copy[:]
+            else:
+                body_copy = self.body[:]
+                body_copy.insert(0, body_copy[0] + self.direction)
+                self.body = body_copy[:]
+                self.has_eaten = False
 
         self.update_head()
         self.update_tail()
-
         self.update_body()
-    
+
     def reset(self):
-        self.body = [pygame.Vector2(START_COL - col ,START_ROW) for col in range(START_LENGTH)]
-        self.direction = pygame.Vector2(1,0)
-
+        self.body = [pygame.Vector2(START_COL - col, START_ROW) for col in range(START_LENGTH)]
+        self.direction = pygame.Vector2(1, 0)
+        self.flipped = False  # reset flipped state
         self.update_head()
         self.update_tail()
         self.update_body()
+
+
 
     def update_head(self):
-        head_relation = self.body[1] - self.body[0]
-        
-        if head_relation == pygame.Vector2(-1, 0):
-            self.head_surf = self.surfs['head_right']
-        elif head_relation == pygame.Vector2(1, 0):
-            self.head_surf = self.surfs['head_left']
+    # head is body[0] when not flipped, body[-1] when flipped
+        if not self.two_headed or not self.flipped:
+            head_relation = self.body[1] - self.body[0]
+            if head_relation == pygame.Vector2(-1, 0):
+                self.head_surf = self.surfs['head_right']
+            elif head_relation == pygame.Vector2(1, 0):
+                self.head_surf = self.surfs['head_left']
+            elif head_relation == pygame.Vector2(0, -1):
+                self.head_surf = self.surfs['head_down']
+            elif head_relation == pygame.Vector2(0, 1):
+                self.head_surf = self.surfs['head_up']
 
-        elif head_relation == pygame.Vector2(0, -1):
-            self.head_surf = self.surfs['head_down']
-
-        elif head_relation == pygame.Vector2(0, 1):
-            self.head_surf = self.surfs['head_up']
+        if self.two_headed:
+        # body[-1] always shows as second head
+            tail_relation = self.body[-2] - self.body[-1]
+            if tail_relation == pygame.Vector2(-1, 0):
+                self.head2_surf = self.surfs['head_right']
+            elif tail_relation == pygame.Vector2(1, 0):
+                self.head2_surf = self.surfs['head_left']
+            elif tail_relation == pygame.Vector2(0, -1):
+                self.head2_surf = self.surfs['head_down']
+            elif tail_relation == pygame.Vector2(0, 1):
+                self.head2_surf = self.surfs['head_up']
 
 
     def update_tail(self):
-        tail_relation = self.body[-2] - self.body[-1]
+
         
-        if tail_relation == pygame.Vector2(1, 0):
-            self.tail_surf = self.surfs['tail_left']
-        elif tail_relation == pygame.Vector2(-1, 0):
-            self.tail_surf = self.surfs['tail_right']
 
-        elif tail_relation == pygame.Vector2(0, 1):
-            self.tail_surf = self.surfs['tail_up']
+        if not self.two_headed:
+            tail_relation = self.body[-2] - self.body[-1]
+        
+            if tail_relation == pygame.Vector2(1, 0):
+                self.tail_surf = self.surfs['tail_left']
+            elif tail_relation == pygame.Vector2(-1, 0):
+                self.tail_surf = self.surfs['tail_right']
 
-        elif tail_relation == pygame.Vector2(0, -1):
-            self.tail_surf = self.surfs['tail_down']
+            elif tail_relation == pygame.Vector2(0, 1):
+                self.tail_surf = self.surfs['tail_up']
+
+            elif tail_relation == pygame.Vector2(0, -1):
+                self.tail_surf = self.surfs['tail_down']
 
 
     def update_body(self):
@@ -111,7 +162,13 @@ class Snake:
 
 
             elif index == len(self.body) - 1:
-                self.draw_data.append((self.tail_surf, rect))
+                if self.two_headed:
+                    self.draw_data.append((self.head2_surf, rect))  # draw second head instead of tail
+                else:
+                    self.draw_data.append((self.tail_surf, rect))
+
+
+                #self.draw_data.append((self.tail_surf, rect))
 
             else: 
                 last_part = self.body[index + 1] - part 

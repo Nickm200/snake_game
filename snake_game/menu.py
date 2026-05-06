@@ -19,6 +19,7 @@ class GameOptions:
     def __init__(self):
         self.game_mode = 0
         self.speed = 1
+        self.random_biome = False
  
  
 # main menu screen
@@ -148,6 +149,11 @@ class OptionsMenu:
                 elif self.arrow_rects["speed_right"].collidepoint(pos):
 
                     self.options.speed = (self.options.speed + 1) % len(GameOptions.SPEEDS)
+            #change biome toggle arrows, both left and rgiht just flip bool
+            if "biome_left" in self.arrow_rects:
+                if self.arrow_rects["biome_left"].collidepoint(pos) or \
+                   self.arrow_rects["biome_right"].collidepoint(pos):
+                    self.options.random_biome = not self.options.random_biome
  
         return self.action
  
@@ -157,7 +163,7 @@ class OptionsMenu:
  
         # draw background panel
         panel_w = 540
-        panel_h = 360
+        panel_h = 420
         panel_rect = pygame.Rect(0, 0, panel_w, panel_h)
         panel_rect.center = (cx, cy)
         pygame.draw.rect(self.surface, (50, 90, 30), panel_rect, border_radius=4)
@@ -171,6 +177,7 @@ class OptionsMenu:
         settings = [
             ("Game Mode", GameOptions.GAME_MODES[self.options.game_mode], "mode"),
             ("Speed", GameOptions.SPEEDS[self.options.speed], "speed"),
+            ("Rand Biome", "On" if self.options.random_biome else "Off",             "biome"),
         ]
  
         self.arrow_rects = {}
@@ -191,9 +198,17 @@ class OptionsMenu:
             self.arrow_rects[key + "_left"] = arr_left
  
             # current value
-            val_surf = self.font_value.render(value, True, LIGHT_GREEN)
+            if key == "biome":
+                val_color = LIGHT_GREEN if self.options.random_biome else (255, 255, 255)
+            else:
+                val_color = LIGHT_GREEN
+
+            val_surf = self.font_value.render(value, True, val_color)
             val_rect = val_surf.get_rect(midleft=(lx + arr_size + 10, row_y + arr_size // 2))
             self.surface.blit(val_surf, val_rect)
+
+
+            
  
             # right arrow
             arr_right = pygame.Rect(val_rect.right + 10, row_y, arr_size, arr_size)
@@ -225,3 +240,5 @@ class OptionsMenu:
             pts = [(cx - s, cy - s), (cx + s, cy), (cx - s, cy + s)]
  
         pygame.draw.polygon(self.surface, (220, 220, 220), pts)
+
+        

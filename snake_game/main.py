@@ -1,3 +1,5 @@
+
+from biome import Biome
 import pygame
 from settings import *
 from snake import Snake
@@ -16,7 +18,11 @@ class Main:
                         for col in range(0,COLS,2) for row in range(ROWS)]
 
         self.snake = Snake()
-        self.apple = Apple(self.snake)
+        #self.apple = Apple(self.snake)
+
+        self.biome = Biome()
+        self.apple = Apple(self.snake, self.biome)
+
              
         #game timer
         self.update_event = pygame.event.custom_type()
@@ -34,8 +40,6 @@ class Main:
         self.options = GameOptions()
 
         self.main_menu = MainMenu(self.display_surface, self.options, self.high_score)
-
-        self.main_menu = MainMenu(self.display_surface, self.options)
         self.options_menu = OptionsMenu(self.display_surface, self.options)
         self.state = "menu"
 
@@ -43,9 +47,20 @@ class Main:
 
 
 
+        # for biome feature
+        #self.biome = Biome()
+
+
+
+
+
     def draw_bg(self):
+
         for rect in self.bg_rects:
-            pygame.draw.rect(self.display_surface, DARK_GREEN, rect)
+            #pygame.draw.rect(self.display_surface, DARK_GREEN, rect)
+
+            #for biome changed
+            pygame.draw.rect(self.display_surface, self.biome.dark, rect)
 
 
 
@@ -53,43 +68,62 @@ class Main:
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_RIGHT]:
-            self.snake.direction = pygame.Vector2(1,0) if self.snake.direction.x != -1 else self.snake.direction
+            if self.snake.direction.x == -1 and self.snake.two_headed:
+                self.snake.flipped = not self.snake.flipped  # reversing, swap head
+            if self.snake.direction.x != -1 or self.snake.two_headed:
+                self.snake.direction = pygame.Vector2(1, 0)
+
         if keys[pygame.K_LEFT]:
-            self.snake.direction = pygame.Vector2(-1,0) if self.snake.direction.x != 1 else self.snake.direction
+            if self.snake.direction.x == 1 and self.snake.two_headed:
+                self.snake.flipped = not self.snake.flipped  # reversing, swap head
+            if self.snake.direction.x != 1 or self.snake.two_headed:
+                self.snake.direction = pygame.Vector2(-1, 0)
+
         if keys[pygame.K_UP]:
-            self.snake.direction = pygame.Vector2(0,-1) if self.snake.direction.y != 1 else self.snake.direction
+            if self.snake.direction.y == 1 and self.snake.two_headed:
+                self.snake.flipped = not self.snake.flipped  # reversing, swap head
+            if self.snake.direction.y != 1 or self.snake.two_headed:
+                self.snake.direction = pygame.Vector2(0, -1)
+
         if keys[pygame.K_DOWN]:
-            self.snake.direction = pygame.Vector2(0,1) if self.snake.direction.y != -1 else self.snake.direction
+            if self.snake.direction.y == -1 and self.snake.two_headed:
+                self.snake.flipped = not self.snake.flipped  # reversing, swap head
+            if self.snake.direction.y != -1 or self.snake.two_headed:
+                self.snake.direction = pygame.Vector2(0, 1)
 
-
+   
     def colliion(self):
-        
-        if self.snake.body[0] == self.apple.pos:
-            self.snake.has_eaten = True
-            self.apple.set_pos()
+    # active head depends on flipped state
+        head1 = self.snake.body[0] if not self.snake.flipped else self.snake.body[-1]
+        head2 = self.snake.body[-1] if self.snake.two_headed and not self.snake.flipped else None
 
-            self.score += 1
-            if self.score > self.high_score:
-                self.high_score = self.score
-                self.main_menu.high_score = self.high_score
+        for head in ([head1, head2] if head2 else [head1]):
+            if head == self.apple.pos:
+                self.snake.has_eaten = True
+                self.apple.set_pos()
+                self.score += 1
+                if self.score > self.high_score:
+                    self.high_score = self.score
+                    self.main_menu.high_score = self.high_score
 
+        inner_body = self.snake.body[1:-1] if self.snake.two_headed else self.snake.body[1:]
+        heads = [head1] + ([head2] if head2 else [])
 
-      
+        for head in heads:
+            if head in inner_body or \
+            not 0 <= head.x < COLS or \
+            not 0 <= head.y < ROWS:
+                self.snake.reset()
+                self.score = 0
+                self.game_active = False
+                self.state = "menu"
+                return
 
-            # game over
-        if self.snake.body[0] in self.snake.body[1:] or \
-            not 0 <= self.snake.body[0].x < COLS or \
-            not 0 <= self.snake.body[0].y < ROWS:
+        if self.snake.two_headed and self.snake.body[0] == self.snake.body[-1]:
             self.snake.reset()
-
             self.score = 0
-
             self.game_active = False
-            
-            #menu
             self.state = "menu"
-            
-
 
     def run(self):
         while True:
@@ -107,6 +141,18 @@ class Main:
                         self.game_active = False
 
                         self.score = 0
+
+                        self.snake.two_headed = (self.options.game_mode == 1)  # set mode from options before reset
+                        self.snake.reset()                                      # reset after setting mode so head2 initializes correctly
+
+
+                        #randomize the biome 
+                        if self.options.random_biome:
+                            self.biome.randomize()
+                            self.apple.update_image(True)
+                        else:
+                            self.apple.update_image(False)
+
 
                         # speed
                         speeds = [400, 200, 100]  # slow, normal, fast
@@ -134,13 +180,17 @@ class Main:
             #updates
 
             if self.state == "game":
-                self.input()
+                if self.game_active:
+                    self.input()
                 self.colliion()
 
 
             #draw
-            self.display_surface.fill(LIGHT_GREEN)
+            self.display_surface.fill(self.biome.light)
             self.draw_bg()
+            #
+            
+
             if self.state == "game":
                 self.snake.draw()
                 self.apple.draw()
@@ -151,6 +201,10 @@ class Main:
                 self.display_surface.blit(score_shadow, (12, 12))
                 self.display_surface.blit(score_surf, (10, 10))
 
+                #added for biome
+                if self.options.random_biome:
+                    self.biome.draw_label(self.display_surface)
+
 
             elif self.state == "menu":
                 self.main_menu.draw()
@@ -160,3 +214,5 @@ class Main:
             pygame.display.update()
 main = Main()
 main.run()
+
+
